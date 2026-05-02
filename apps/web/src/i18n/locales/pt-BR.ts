@@ -309,6 +309,8 @@ export const ptBR: Dict = {
   'ds.categoryUncategorized': 'Sem categoria',
   'ds.showcase': 'Vitrine',
   'ds.tokens': 'Tokens',
+  'ds.specToggle': 'DESIGN.md',
+  'ds.specLoading': 'Carregando DESIGN.md…',
 
   'avatar.title': 'Conta e configurações',
   'avatar.localCli': 'CLI local',
@@ -404,6 +406,8 @@ export const ptBR: Dict = {
   'preview.fullscreen': '⤢ Tela cheia',
   'preview.closeTitle': 'Fechar (Esc)',
   'preview.loading': 'Carregando {label}…',
+  'preview.showSidebar': 'Mostrar {label}',
+  'preview.hideSidebar': 'Ocultar {label}',
 
   'misc.savedTemplate': 'Template salvo',
   'misc.primary': 'Principal',

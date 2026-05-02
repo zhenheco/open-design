@@ -305,6 +305,8 @@ export const zhTW: Dict = {
   'ds.categoryUncategorized': '未分類',
   'ds.showcase': '展示',
   'ds.tokens': 'Token',
+  'ds.specToggle': 'DESIGN.md',
+  'ds.specLoading': '正在載入 DESIGN.md…',
 
   'avatar.title': '帳號與設定',
   'avatar.localCli': '本機 CLI',
@@ -397,6 +399,8 @@ export const zhTW: Dict = {
   'preview.fullscreen': '⤢ 全螢幕',
   'preview.closeTitle': '關閉（Esc）',
   'preview.loading': '正在載入{label}…',
+  'preview.showSidebar': '展開{label}',
+  'preview.hideSidebar': '收合{label}',
 
   'misc.savedTemplate': '已儲存的範本',
   'misc.primary': '主系統',

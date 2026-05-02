@@ -309,6 +309,8 @@ export const ru: Dict = {
   'ds.categoryUncategorized': 'Без категории',
   'ds.showcase': 'Витрина',
   'ds.tokens': 'Токены',
+  'ds.specToggle': 'DESIGN.md',
+  'ds.specLoading': 'Загрузка DESIGN.md…',
 
   'avatar.title': 'Аккаунт и настройки',
   'avatar.localCli': 'Локальный CLI',
@@ -404,6 +406,8 @@ export const ru: Dict = {
   'preview.fullscreen': '⤢ Полноэкранный',
   'preview.closeTitle': 'Закрыть (Esc)',
   'preview.loading': 'Загрузка {label}…',
+  'preview.showSidebar': 'Показать {label}',
+  'preview.hideSidebar': 'Скрыть {label}',
 
   'misc.savedTemplate': 'Сохраненный шаблон',
   'misc.primary': 'Основной',

@@ -310,6 +310,8 @@ export const de: Dict = {
   'ds.categoryUncategorized': 'Nicht kategorisiert',
   'ds.showcase': 'Showcase',
   'ds.tokens': 'Tokens',
+  'ds.specToggle': 'DESIGN.md',
+  'ds.specLoading': 'DESIGN.md wird geladen…',
 
   'avatar.title': 'Konto & Einstellungen',
   'avatar.localCli': 'Lokale CLI',
@@ -405,6 +407,8 @@ export const de: Dict = {
   'preview.fullscreen': '⤢ Vollbild',
   'preview.closeTitle': 'Schließen (Esc)',
   'preview.loading': '{label} wird geladen…',
+  'preview.showSidebar': '{label} einblenden',
+  'preview.hideSidebar': '{label} ausblenden',
 
   'misc.savedTemplate': 'Gespeichertes Template',
   'misc.primary': 'Primär',

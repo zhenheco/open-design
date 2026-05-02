@@ -311,6 +311,8 @@ export const esES: Dict = {
   'ds.categoryUncategorized': 'Sin categoría',
   'ds.showcase': 'Vitrina',
   'ds.tokens': 'Tokens',
+  'ds.specToggle': 'DESIGN.md',
+  'ds.specLoading': 'Cargando DESIGN.md…',
 
   'avatar.title': 'Cuenta y ajustes',
   'avatar.localCli': 'CLI local',
@@ -406,6 +408,8 @@ export const esES: Dict = {
   'preview.fullscreen': '⤢ Pantalla completa',
   'preview.closeTitle': 'Cerrar (Esc)',
   'preview.loading': 'Cargando {label}…',
+  'preview.showSidebar': 'Mostrar {label}',
+  'preview.hideSidebar': 'Ocultar {label}',
 
   'misc.savedTemplate': 'Plantilla guardada',
   'misc.primary': 'Principal',

@@ -310,6 +310,8 @@ export const fa: Dict = {
   'ds.categoryUncategorized': 'دسته‌بندی نشده',
   'ds.showcase': 'ویترین',
   'ds.tokens': 'توکن‌ها',
+  'ds.specToggle': 'DESIGN.md',
+  'ds.specLoading': 'بارگذاری DESIGN.md…',
 
   'avatar.title': 'حساب و تنظیمات',
   'avatar.localCli': 'CLI محلی',
@@ -405,6 +407,8 @@ export const fa: Dict = {
   'preview.fullscreen': '⤢ تمام صفحه',
   'preview.closeTitle': 'بستن (Esc)',
   'preview.loading': 'در حال بارگذاری {label}…',
+  'preview.showSidebar': 'نمایش {label}',
+  'preview.hideSidebar': 'پنهان کردن {label}',
 
   'misc.savedTemplate': 'قالب ذخیره شده',
   'misc.primary': 'اصلی',

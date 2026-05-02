@@ -305,6 +305,8 @@ export const zhCN: Dict = {
   'ds.categoryUncategorized': '未分类',
   'ds.showcase': '展示',
   'ds.tokens': 'Token',
+  'ds.specToggle': 'DESIGN.md',
+  'ds.specLoading': '正在加载 DESIGN.md…',
 
   'avatar.title': '账户与设置',
   'avatar.localCli': '本机 CLI',
@@ -397,6 +399,8 @@ export const zhCN: Dict = {
   'preview.fullscreen': '⤢ 全屏',
   'preview.closeTitle': '关闭（Esc）',
   'preview.loading': '正在加载{label}…',
+  'preview.showSidebar': '展开{label}',
+  'preview.hideSidebar': '收起{label}',
 
   'misc.savedTemplate': '已保存的模板',
   'misc.primary': '主体系',

@@ -310,6 +310,8 @@ export const ko: Dict = {
   'ds.categoryUncategorized': '미분류',
   'ds.showcase': '쇼케이스',
   'ds.tokens': '토큰',
+  'ds.specToggle': 'DESIGN.md',
+  'ds.specLoading': 'DESIGN.md 불러오는 중…',
 
   'avatar.title': '계정 및 설정',
   'avatar.localCli': '로컬 CLI',
@@ -405,6 +407,8 @@ export const ko: Dict = {
   'preview.fullscreen': '⤢ 전체 화면',
   'preview.closeTitle': '닫기 (Esc)',
   'preview.loading': '{label} 불러오는 중…',
+  'preview.showSidebar': '{label} 표시',
+  'preview.hideSidebar': '{label} 숨기기',
 
   'misc.savedTemplate': '저장된 템플릿',
   'misc.primary': '기본색 (Primary)',

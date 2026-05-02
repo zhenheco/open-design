@@ -328,6 +328,8 @@ export interface Dict {
   'ds.categoryUncategorized': string;
   'ds.showcase': string;
   'ds.tokens': string;
+  'ds.specToggle': string;
+  'ds.specLoading': string;
 
   // Avatar menu (project topbar)
   'avatar.title': string;
@@ -419,6 +421,8 @@ export interface Dict {
   'preview.fullscreen': string;
   'preview.closeTitle': string;
   'preview.loading': string;
+  'preview.showSidebar': string;
+  'preview.hideSidebar': string;
 
   // Misc fallback names
   'misc.savedTemplate': string;

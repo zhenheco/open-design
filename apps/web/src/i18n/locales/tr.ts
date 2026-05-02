@@ -309,6 +309,8 @@ export const tr: Dict = {
   'ds.categoryUncategorized': 'Kategorilendirilmemiş',
   'ds.showcase': 'Tanıtım',
   'ds.tokens': 'Tokenler',
+  'ds.specToggle': 'DESIGN.md',
+  'ds.specLoading': 'DESIGN.md yükleniyor…',
 
   'avatar.title': 'Hesap & ayarlar',
   'avatar.localCli': 'Yerel CLI',
@@ -404,6 +406,8 @@ export const tr: Dict = {
   'preview.fullscreen': '⤢ Tam ekran',
   'preview.closeTitle': 'Kapat (Esc)',
   'preview.loading': '{label} yükleniyor…',
+  'preview.showSidebar': '{label} göster',
+  'preview.hideSidebar': '{label} gizle',
 
   'misc.savedTemplate': 'Kaydedilmiş şablonlar',
   'misc.primary': 'Birincil',

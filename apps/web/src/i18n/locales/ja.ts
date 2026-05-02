@@ -309,6 +309,8 @@ export const ja: Dict = {
   'ds.categoryUncategorized': '未分類',
   'ds.showcase': 'ショーケース',
   'ds.tokens': 'トークン',
+  'ds.specToggle': 'DESIGN.md',
+  'ds.specLoading': 'DESIGN.md を読み込み中…',
 
   'avatar.title': 'アカウントと設定',
   'avatar.localCli': 'ローカル CLI',
@@ -404,6 +406,8 @@ export const ja: Dict = {
   'preview.fullscreen': '⤢ フルスクリーン',
   'preview.closeTitle': '閉じる (Esc)',
   'preview.loading': '{label} を読み込み中…',
+  'preview.showSidebar': '{label} を表示',
+  'preview.hideSidebar': '{label} を非表示',
 
   'misc.savedTemplate': '保存済みテンプレート',
   'misc.primary': 'プライマリ',
