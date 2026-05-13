@@ -66,12 +66,14 @@ test('entry top navigation matches the current home tab structure', async ({ pag
     'Designs',
     'Templates',
     'Design systems',
+    'References',
     'Image templates',
     'Video templates',
   ]);
   await expect(page.getByTestId('entry-tab-designs')).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByTestId('entry-tab-templates')).toBeVisible();
   await expect(page.getByTestId('entry-tab-design-systems')).toBeVisible();
+  await expect(page.getByTestId('entry-tab-references')).toBeVisible();
   await expect(page.getByTestId('entry-tab-image-templates')).toBeVisible();
   await expect(page.getByTestId('entry-tab-video-templates')).toBeVisible();
   await expect(page.locator('.entry-tabs').getByRole('tab', { name: 'Connectors' })).toHaveCount(0);
