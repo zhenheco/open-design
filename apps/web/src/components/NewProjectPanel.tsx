@@ -1,5 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ConnectorDetail, ImportFolderResponse } from '@open-design/contracts';
+import {
+  ARTIFACT_INTENT_GROUPS,
+  INITIAL_ARTIFACT_INTENTS,
+  STARTER_STYLE_CARDS,
+  buildPrintSpecMetadata,
+  cloneStyleCardMetadata,
+  findArtifactIntentPreset,
+  findStarterStyleCard,
+  toArtifactIntentMetadata,
+  type ArtifactIntentId,
+  type ConnectorDetail,
+  type ImportFolderResponse,
+} from '@open-design/contracts';
 
 // Window.electronAPI is declared globally in apps/web/src/types/electron.d.ts
 // so the new openPath + pickAndImport methods (#451 / PR #974) and
@@ -224,6 +236,10 @@ export function NewProjectPanel({
     { message: string; details?: string } | null
   >(null);
   const [tab, setTab] = useState<CreateTab>('prototype');
+  const [artifactIntentId, setArtifactIntentId] =
+    useState<ArtifactIntentId>('landing-page');
+  const [styleCardId, setStyleCardId] = useState('neutral');
+  const [printSpecText, setPrintSpecText] = useState('');
   // Media tab consolidates image / video / audio. The active surface picks
   // which set of options + skill resolution applies; submission still maps
   // back to the existing image/video/audio ProjectKind branches so the
@@ -439,6 +455,10 @@ export function NewProjectPanel({
 
   const canCreate =
     !loading && (tab !== 'template' || templateId != null);
+  const selectedArtifactIntent = findArtifactIntentPreset(artifactIntentId);
+  const showPrintSpecInput =
+    (tab === 'prototype' || tab === 'live-artifact' || tab === 'template' || tab === 'other')
+    && selectedArtifactIntent.printReady;
 
   function updateTabScrollState() {
     const el = tabsRef.current;
@@ -523,6 +543,9 @@ export function NewProjectPanel({
       voice,
       inspirationIds: inspirations,
       promptTemplate: promptTemplatePick,
+      artifactIntentId,
+      styleCardId,
+      printSpecText,
     });
     onCreate({
       name: name.trim() || autoName(tab, mediaSurface, t),
@@ -653,6 +676,36 @@ export function NewProjectPanel({
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
+
+        {tab === 'prototype' || tab === 'live-artifact' || tab === 'template' || tab === 'other' ? (
+          <ArtifactIntentPicker
+            value={artifactIntentId}
+            onChange={setArtifactIntentId}
+          />
+        ) : null}
+
+        {tab === 'prototype' || tab === 'live-artifact' || tab === 'template' || tab === 'other' ? (
+          <StarterStyleCardPicker
+            value={styleCardId}
+            onChange={setStyleCardId}
+          />
+        ) : null}
+
+        {showPrintSpecInput ? (
+          <section className="print-spec-box" aria-label="Print spec panel">
+            <div className="newproj-field-head">
+              <span>Print spec</span>
+              <small>Paste the vendor spec for CMYK, bleed, safe area, DPI, material, or finish.</small>
+            </div>
+            <textarea
+              aria-label="Print spec"
+              value={printSpecText}
+              onChange={(event) => setPrintSpecText(event.target.value)}
+              placeholder="CMYK only&#10;Bleed: 3mm&#10;Safe area: 2mm&#10;300 DPI"
+              rows={5}
+            />
+          </section>
+        ) : null}
 
         {showDesignSystemPicker ? (
           <DesignSystemPicker
@@ -881,6 +934,90 @@ export function NewProjectPanel({
           onDismiss={() => setImportFolderError(null)}
         />
       ) : null}
+    </div>
+  );
+}
+
+function formatIntentDimensions(intentId: ArtifactIntentId): string {
+  const dimensions = findArtifactIntentPreset(intentId).dimensions;
+  if (!dimensions) return 'Custom';
+  const dpi = dimensions.dpi ? ` @ ${dimensions.dpi} DPI` : '';
+  return `${dimensions.width} x ${dimensions.height} ${dimensions.unit}${dpi}`;
+}
+
+function ArtifactIntentPicker({
+  value,
+  onChange,
+}: {
+  value: ArtifactIntentId;
+  onChange: (v: ArtifactIntentId) => void;
+}) {
+  return (
+    <div className="newproj-section">
+      <label className="newproj-label">What are you making?</label>
+      <div className="artifact-intent-groups" role="radiogroup" aria-label="Artifact intent">
+        {ARTIFACT_INTENT_GROUPS.map((group) => {
+          const groupIntents = INITIAL_ARTIFACT_INTENTS.filter(
+            (intent) => intent.group === group.id,
+          );
+          if (groupIntents.length === 0) return null;
+          return (
+            <section key={group.id} className="artifact-intent-group" aria-label={group.label}>
+              <div className="artifact-intent-group-label">{group.label}</div>
+              <div className="artifact-intent-grid">
+                {groupIntents.map((intent) => {
+                  const active = value === intent.id;
+                  return (
+                    <button
+                      key={intent.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      className={`newproj-card artifact-intent-card${active ? ' active' : ''}`}
+                      onClick={() => onChange(intent.id)}
+                    >
+                      <span className="artifact-intent-name">{intent.label}</span>
+                      <span className="artifact-intent-meta">{formatIntentDimensions(intent.id)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function StarterStyleCardPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="newproj-section">
+      <label className="newproj-label">Style direction</label>
+      <div className="style-card-grid" role="radiogroup" aria-label="Style direction">
+        {STARTER_STYLE_CARDS.map((card) => {
+          const active = value === card.id;
+          return (
+            <button
+              key={card.id}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              className={`newproj-card style-card-option${active ? ' active' : ''}`}
+              onClick={() => onChange(card.id)}
+            >
+              <span className="style-card-option-name">{card.label}</span>
+              <span className="style-card-option-meta">{card.signals.mood}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -2385,6 +2522,9 @@ function buildMetadata(input: {
   voice: string;
   inspirationIds: string[];
   promptTemplate: PromptTemplatePick | null;
+  artifactIntentId: ArtifactIntentId;
+  styleCardId: string;
+  printSpecText: string;
 }): ProjectMetadata {
   const kind: ProjectKind =
     input.tab === 'live-artifact'
@@ -2407,9 +2547,23 @@ function buildMetadata(input: {
   const inspirations = input.inspirationIds.length > 0
     ? { inspirationDesignSystemIds: input.inspirationIds }
     : {};
+  const artifactIntent = toArtifactIntentMetadata(
+    findArtifactIntentPreset(input.artifactIntentId),
+  );
+  const styleCard = cloneStyleCardMetadata(findStarterStyleCard(input.styleCardId));
+  const printSpec = buildPrintSpecMetadata({
+    label: `${artifactIntent.label} print spec`,
+    text: input.printSpecText,
+  });
+  const creationContext = {
+    artifactIntent,
+    styleCard,
+    ...(printSpec ? { printSpec } : {}),
+  };
   if (input.tab === 'prototype' || input.tab === 'live-artifact') {
     return {
       kind,
+      ...creationContext,
       ...base,
       // Live artifact is locked to high fidelity (the picker is hidden in
       // the panel) — wireframe live artifacts don't make sense.
@@ -2423,13 +2577,14 @@ function buildMetadata(input: {
   }
   if (input.tab === 'template') {
     if (input.templateId == null) {
-      return { kind, ...base, animations: input.animations, ...inspirations };
+      return { kind, ...creationContext, ...base, animations: input.animations, ...inspirations };
     }
     const tpl = input.templates.find((x) => x.id === input.templateId);
     // The fallback label is consumed by the agent prompt rather than the
     // UI, so we keep it in English to match the rest of the prompt corpus.
     return {
       kind,
+      ...creationContext,
       ...base,
       animations: input.animations,
       templateId: input.templateId,
@@ -2466,7 +2621,7 @@ function buildMetadata(input: {
       ...inspirations,
     };
   }
-  return { kind: 'other', ...base, ...inspirations };
+  return { kind: 'other', ...creationContext, ...base, ...inspirations };
 }
 
 function normalizeSelectedPlatforms(platforms: NewProjectPlatform[]): NewProjectPlatform[] {

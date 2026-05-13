@@ -40,6 +40,49 @@ import { defaultCritiqueConfig, type CritiqueConfig } from '@open-design/contrac
 type ProjectMetadata = {
   kind?: string;
   intent?: string | null;
+  artifactIntent?: {
+    id?: string | null;
+    label?: string | null;
+    group?: string | null;
+    dimensions?: {
+      width?: number | null;
+      height?: number | null;
+      unit?: string | null;
+      dpi?: number | null;
+    } | null;
+    mediumConstraints?: string[] | null;
+    outputExpectations?: string[] | null;
+    printReady?: boolean | null;
+  } | null;
+  styleCard?: {
+    id?: string | null;
+    label?: string | null;
+    source?: string | null;
+    sourceReferences?: Array<{ id?: string | null; name?: string | null }> | null;
+    signals?: {
+      mood?: string | null;
+      color?: string | null;
+      typography?: string | null;
+      composition?: string | null;
+      density?: string | null;
+      transferNotes?: string | null;
+    } | null;
+  } | null;
+  printSpec?: {
+    id?: string | null;
+    label?: string | null;
+    source?: string | null;
+    rawText?: string | null;
+    requirements?: {
+      colorMode?: string | null;
+      bleedMm?: number | null;
+      safeAreaMm?: number | null;
+      dpi?: number | null;
+      finish?: string | null;
+      material?: string | null;
+    } | null;
+    checklist?: string[] | null;
+  } | null;
   fidelity?: string | null;
   speakerNotes?: boolean | null;
   animations?: boolean | null;
@@ -128,6 +171,9 @@ export interface ComposeInput {
   // built-in identity charter but still defer to the brand's hard tokens
   // and the active skill's workflow. Empty/undefined skips the block.
   memoryBody?: string | undefined;
+  // Accepted style cards from the Taste profile. This is durable taste
+  // context and must be translated across media, not copied verbatim.
+  tasteProfileBody?: string | undefined;
   // Project-level metadata captured by the new-project panel. Drives the
   // agent's understanding of artifact kind, fidelity, speaker-notes intent
   // and animation intent. Missing fields here are exactly what the
@@ -172,6 +218,7 @@ export function composeSystemPrompt({
   craftBody,
   craftSections,
   memoryBody,
+  tasteProfileBody,
   metadata,
   template,
   critique,
@@ -208,6 +255,11 @@ export function composeSystemPrompt({
   if (memoryBody && memoryBody.trim().length > 0) {
     parts.push(
       `\n\n## Personal memory (auto-extracted from past chats)\n\nThe following facts have been sedimented from this user's previous conversations and edited in the settings panel. Treat them as preferences and context, NOT hard rules: when they collide with the active design system tokens, the brand wins; when they collide with the active skill's workflow, the skill wins. They are still authoritative for tone, voice, terminology, and what the user already told you about themselves and their goals — never re-ask the user about something already captured here.\n\n${memoryBody.trim()}`,
+    );
+  }
+  if (tasteProfileBody && tasteProfileBody.trim().length > 0) {
+    parts.push(
+      `\n\n## Taste profile (accepted Style cards)\n\nThese are user-accepted design taste signals. Use them as durable style context, but translate them to the selected artifact intent and medium. Do not copy source artwork, logos, protected layouts, or the original medium one-to-one.\n\n${tasteProfileBody.trim()}`,
     );
   }
 
@@ -490,6 +542,9 @@ function renderMetadataBlock(
   );
   lines.push('');
   lines.push(`- **kind**: ${metadata.kind}`);
+  appendArtifactIntentMetadata(lines, metadata);
+  appendStyleCardMetadata(lines, metadata);
+  appendPrintSpecMetadata(lines, metadata);
   if (metadata.platform) {
     lines.push(`- **platform**: ${metadata.platform}`);
   } else if (metadata.kind === 'prototype' || metadata.kind === 'template' || metadata.kind === 'other') {
@@ -716,6 +771,86 @@ function renderMetadataBlock(
   }
 
   return lines.join('\n');
+}
+
+function appendArtifactIntentMetadata(lines: string[], metadata: ProjectMetadata): void {
+  const intent = metadata.artifactIntent;
+  if (!intent) return;
+  const id = typeof intent.id === 'string' && intent.id.length > 0 ? intent.id : 'unknown';
+  const label = typeof intent.label === 'string' && intent.label.length > 0 ? intent.label : id;
+  lines.push(`- **artifactIntent**: ${label} (\`${id}\`)`);
+  if (
+    intent.dimensions &&
+    typeof intent.dimensions.width === 'number' &&
+    typeof intent.dimensions.height === 'number' &&
+    typeof intent.dimensions.unit === 'string'
+  ) {
+    const dpi = typeof intent.dimensions.dpi === 'number' ? ` @ ${intent.dimensions.dpi} DPI` : '';
+    lines.push(
+      `- **artifactDimensions**: ${intent.dimensions.width} x ${intent.dimensions.height} ${intent.dimensions.unit}${dpi}`,
+    );
+  }
+  const mediumConstraints = Array.isArray(intent.mediumConstraints) ? intent.mediumConstraints : [];
+  if (mediumConstraints.length > 0) {
+    lines.push(`- **artifactMediumConstraints**: ${mediumConstraints.join('; ')}`);
+  }
+  const outputExpectations = Array.isArray(intent.outputExpectations) ? intent.outputExpectations : [];
+  if (outputExpectations.length > 0) {
+    lines.push(`- **artifactOutputExpectations**: ${outputExpectations.join('; ')}`);
+  }
+  lines.push(`- **printReadinessRelevant**: ${intent.printReady ? 'true' : 'false'}`);
+}
+
+function appendStyleCardMetadata(lines: string[], metadata: ProjectMetadata): void {
+  const styleCard = metadata.styleCard;
+  if (!styleCard) return;
+  const id = typeof styleCard.id === 'string' && styleCard.id.length > 0 ? styleCard.id : 'unknown';
+  const label = typeof styleCard.label === 'string' && styleCard.label.length > 0 ? styleCard.label : id;
+  const source = typeof styleCard.source === 'string' && styleCard.source.length > 0 ? styleCard.source : 'unknown';
+  lines.push(`- **styleCard**: ${label} (\`${id}\`, ${source})`);
+  const sourceReferences = Array.isArray(styleCard.sourceReferences)
+    ? styleCard.sourceReferences
+        .filter((ref) => ref && typeof ref.id === 'string' && typeof ref.name === 'string')
+        .map((ref) => `${ref.name} (\`${ref.id}\`)`)
+    : [];
+  if (sourceReferences.length > 0) {
+    lines.push(`- **styleSourceReferences**: ${sourceReferences.join('; ')}`);
+  }
+  const signals = styleCard.signals;
+  if (!signals) return;
+  if (signals.mood) lines.push(`- **styleMood**: ${signals.mood}`);
+  if (signals.color) lines.push(`- **styleColor**: ${signals.color}`);
+  if (signals.typography) lines.push(`- **styleTypography**: ${signals.typography}`);
+  if (signals.composition) lines.push(`- **styleComposition**: ${signals.composition}`);
+  if (signals.density) lines.push(`- **styleDensity**: ${signals.density}`);
+  if (signals.transferNotes) lines.push(`- **styleTransferNotes**: ${signals.transferNotes}`);
+  if (source === 'extracted' || sourceReferences.length > 0) {
+    lines.push(
+      '- **crossMediumStyleTransferRule**: translate the extracted style signals to the selected artifact intent; do not copy source artwork, logos, protected layouts, or the original medium one-to-one.',
+    );
+  }
+}
+
+function appendPrintSpecMetadata(lines: string[], metadata: ProjectMetadata): void {
+  const spec = metadata.printSpec;
+  if (!spec) return;
+  const id = typeof spec.id === 'string' && spec.id.length > 0 ? spec.id : 'unknown';
+  const label = typeof spec.label === 'string' && spec.label.length > 0 ? spec.label : id;
+  const source = typeof spec.source === 'string' && spec.source.length > 0 ? spec.source : 'unknown';
+  lines.push(`- **printSpec**: ${label} (\`${id}\`, ${source})`);
+  const requirements = spec.requirements;
+  if (requirements) {
+    if (requirements.colorMode) lines.push(`- **printColorMode**: ${requirements.colorMode}`);
+    if (requirements.bleedMm !== undefined && requirements.bleedMm !== null) lines.push(`- **printBleedMm**: ${requirements.bleedMm}`);
+    if (requirements.safeAreaMm !== undefined && requirements.safeAreaMm !== null) lines.push(`- **printSafeAreaMm**: ${requirements.safeAreaMm}`);
+    if (requirements.dpi !== undefined && requirements.dpi !== null) lines.push(`- **printDpi**: ${requirements.dpi}`);
+    if (requirements.material) lines.push(`- **printMaterial**: ${requirements.material}`);
+    if (requirements.finish) lines.push(`- **printFinish**: ${requirements.finish}`);
+  }
+  if (Array.isArray(spec.checklist) && spec.checklist.length > 0) {
+    lines.push(`- **printChecklist**: ${spec.checklist.join(' | ')}`);
+  }
+  lines.push('- **basicPrintHandoffRule**: produce a Level 2.5 print handoff: final design plus explicit trim size, bleed, safe area, DPI, CMYK-compatible color notes, asset resolution notes, and vendor assumptions. Do not stop at a screen-only preview.');
 }
 
 /**

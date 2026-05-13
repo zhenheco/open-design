@@ -4,7 +4,7 @@
 
 Phased plan from "spec-only today" to "usable MVP" to "published v1." All estimates assume one focused developer; multiply by 0.6 for two and 0.4 for three.
 
-For this productization fork, use [`plans/v1-baseline.md`](plans/v1-baseline.md) as the current near-term execution plan before differentiated feature work.
+For this productization fork, use [`plans/v1-baseline.md`](plans/v1-baseline.md) as the current near-term execution plan before differentiated feature work. The first documented differentiation direction is [`plans/design-taste-evolution.md`](plans/design-taste-evolution.md).
 
 ---
 

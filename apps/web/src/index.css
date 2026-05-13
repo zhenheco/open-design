@@ -4041,6 +4041,88 @@ code {
 }
 .newproj-name { width: 100%; }
 .newproj-section { display: flex; flex-direction: column; gap: 6px; }
+.artifact-intent-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 2px;
+}
+.artifact-intent-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.artifact-intent-group-label {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.artifact-intent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.artifact-intent-card {
+  min-height: 58px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.artifact-intent-name {
+  color: var(--text-strong);
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+.artifact-intent-meta {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.25;
+}
+.style-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.style-card-option {
+  min-height: 66px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.style-card-option-name {
+  color: var(--text-strong);
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+.style-card-option-meta {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.print-spec-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: 8px;
+  background: var(--surface-subtle, rgba(0, 0, 0, 0.02));
+}
+
+.print-spec-box textarea {
+  width: 100%;
+  resize: vertical;
+}
+
 .platform-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -15531,6 +15613,63 @@ body.entry-resizing { cursor: col-resize; user-select: none; }
 .memory-root-dir {
   word-break: break-all;
   font-size: 11px;
+}
+
+.style-card-extraction-panel,
+.style-card-editor {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: 8px;
+  background: var(--surface-subtle, rgba(0, 0, 0, 0.02));
+}
+
+.style-card-editor {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.style-card-editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.style-card-signal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.style-card-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.style-card-field span {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.style-card-field textarea,
+.style-card-field input {
+  width: 100%;
+}
+
+.style-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* Memory section: extraction-history list. One row per recorded LLM

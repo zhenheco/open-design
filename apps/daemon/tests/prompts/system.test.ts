@@ -113,6 +113,131 @@ describe('composeSystemPrompt', () => {
     expect(prompt).not.toContain('**platformTargets**');
   });
 
+  it('includes artifact intent constraints in project metadata guidance', () => {
+    const prompt = composeSystemPrompt({
+      metadata: {
+        kind: 'prototype',
+        platform: 'responsive',
+        artifactIntent: {
+          id: 'business-card',
+          label: 'Business card',
+          group: 'print-products',
+          dimensions: {
+            width: 90,
+            height: 54,
+            unit: 'mm',
+            dpi: 300,
+          },
+          mediumConstraints: ['two-sided physical print surface'],
+          outputExpectations: ['print handoff'],
+          printReady: true,
+        },
+      } as any,
+    });
+
+    expect(prompt).toContain('- **artifactIntent**: Business card (`business-card`)');
+    expect(prompt).toContain('- **artifactDimensions**: 90 x 54 mm @ 300 DPI');
+    expect(prompt).toContain('- **artifactMediumConstraints**: two-sided physical print surface');
+    expect(prompt).toContain('- **artifactOutputExpectations**: print handoff');
+    expect(prompt).toContain('- **printReadinessRelevant**: true');
+  });
+
+  it('includes selected Style card signals in project metadata guidance', () => {
+    const prompt = composeSystemPrompt({
+      metadata: {
+        kind: 'prototype',
+        styleCard: {
+          id: 'editorial-noir',
+          label: 'Editorial noir',
+          source: 'starter',
+          signals: {
+            mood: 'dramatic, refined, high-confidence',
+            color: 'black and warm white with one sharp accent',
+            typography: 'condensed editorial sans headlines',
+            composition: 'asymmetric magazine-like grid',
+            density: 'medium-high information density with deliberate whitespace',
+            transferNotes: 'use the editorial contrast without copying a magazine cover',
+          },
+        },
+      } as any,
+    });
+
+    expect(prompt).toContain('- **styleCard**: Editorial noir (`editorial-noir`, starter)');
+    expect(prompt).toContain('- **styleMood**: dramatic, refined, high-confidence');
+    expect(prompt).toContain('- **styleColor**: black and warm white with one sharp accent');
+    expect(prompt).toContain('- **styleTypography**: condensed editorial sans headlines');
+    expect(prompt).toContain('- **styleComposition**: asymmetric magazine-like grid');
+    expect(prompt).toContain('- **styleDensity**: medium-high information density with deliberate whitespace');
+    expect(prompt).toContain('- **styleTransferNotes**: use the editorial contrast without copying a magazine cover');
+  });
+
+  it('adds cross-medium transfer guidance for extracted Style cards', () => {
+    const prompt = composeSystemPrompt({
+      metadata: {
+        kind: 'prototype',
+        artifactIntent: {
+          id: 'business-card',
+          label: 'Business card',
+          group: 'print-products',
+          dimensions: { width: 90, height: 54, unit: 'mm', dpi: 300 },
+          mediumConstraints: ['two-sided physical print surface'],
+          outputExpectations: ['print handoff'],
+          printReady: true,
+        },
+        styleCard: {
+          id: 'style_premium_packaging_direction',
+          label: 'Premium packaging direction',
+          source: 'extracted',
+          signals: {
+            mood: 'premium, confident',
+            color: 'deep green, ivory, muted gold foil',
+            typography: 'elegant serif with uppercase details',
+            composition: 'centered label grid',
+            density: 'low density front, detailed back',
+            transferNotes: 'Adapt packaging signals to the selected medium without copying source art.',
+          },
+          sourceReferences: [
+            { id: 'reference_packaging_ref', name: 'Packaging reference' },
+          ],
+        },
+      } as any,
+    });
+
+    expect(prompt).toContain('- **styleSourceReferences**: Packaging reference (`reference_packaging_ref`)');
+    expect(prompt).toContain('- **crossMediumStyleTransferRule**: translate the extracted style signals to the selected artifact intent; do not copy source artwork, logos, protected layouts, or the original medium one-to-one.');
+  });
+
+  it('includes print specs and Level 2.5 print handoff guidance', () => {
+    const prompt = composeSystemPrompt({
+      metadata: {
+        kind: 'prototype',
+        printSpec: {
+          id: 'print_business_card_print_spec',
+          label: 'Business card print spec',
+          source: 'paste',
+          rawText: 'CMYK only\nBleed: 3mm\nSafe area: 2mm\n300 DPI',
+          requirements: {
+            colorMode: 'cmyk-compatible',
+            bleedMm: 3,
+            safeAreaMm: 2,
+            dpi: 300,
+          },
+          checklist: [
+            'Use CMYK-compatible colors and avoid relying on screen-only RGB glow.',
+            'Extend backgrounds 3mm into bleed.',
+          ],
+        },
+      } as any,
+    });
+
+    expect(prompt).toContain('- **printSpec**: Business card print spec (`print_business_card_print_spec`, paste)');
+    expect(prompt).toContain('- **printColorMode**: cmyk-compatible');
+    expect(prompt).toContain('- **printBleedMm**: 3');
+    expect(prompt).toContain('- **printSafeAreaMm**: 2');
+    expect(prompt).toContain('- **printDpi**: 300');
+    expect(prompt).toContain('Level 2.5 print handoff');
+  });
+
   describe('artifact handoff no-emit clauses (#1143)', () => {
     it('drops the absolute "non-negotiable" framing in favor of conditional language', () => {
       const prompt = composeSystemPrompt({});

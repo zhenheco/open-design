@@ -1,6 +1,9 @@
 export * from './common';
 export * from './errors';
 export * from './tasks';
+export * from './artifact-intents';
+export * from './style-cards';
+export * from './print-specs';
 export * from './api/app-config';
 export * from './api/artifacts';
 export * from './api/chat';
@@ -12,6 +15,7 @@ export * from './api/finalize';
 export * from './api/live-artifacts';
 export * from './api/mcp';
 export * from './api/memory';
+export * from './api/taste-profile';
 export * from './api/orbit';
 export * from './api/providerModels';
 export * from './api/projects';

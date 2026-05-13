@@ -92,4 +92,39 @@ describe('composeSystemPrompt — API mode (#313)', () => {
       expect(prompt).toMatch(/<artifact>/);
     });
   });
+
+  it('includes accepted taste profile and cross-medium style transfer guidance', () => {
+    const prompt = composeSystemPrompt({
+      tasteProfileBody: [
+        '## Taste profile',
+        '- **Premium packaging direction** (`style_premium_packaging_direction`)',
+        '  - Color: deep green, ivory, muted gold foil',
+        '  - Transfer: Adapt these accepted style signals across media.',
+      ].join('\n'),
+      metadata: {
+        kind: 'prototype',
+        styleCard: {
+          id: 'style_premium_packaging_direction',
+          label: 'Premium packaging direction',
+          source: 'extracted',
+          signals: {
+            mood: 'premium, confident',
+            color: 'deep green, ivory, muted gold foil',
+            typography: 'elegant serif',
+            composition: 'centered label grid',
+            density: 'low density',
+            transferNotes: 'Adapt packaging signals without copying source art.',
+          },
+          sourceReferences: [
+            { id: 'reference_packaging_ref', name: 'Packaging reference' },
+          ],
+        },
+      } as any,
+    });
+
+    expect(prompt).toContain('## Taste profile');
+    expect(prompt).toContain('deep green, ivory, muted gold foil');
+    expect(prompt).toContain('- **styleSourceReferences**: Packaging reference (`reference_packaging_ref`)');
+    expect(prompt).toContain('- **crossMediumStyleTransferRule**: translate the extracted style signals to the selected artifact intent; do not copy source artwork, logos, protected layouts, or the original medium one-to-one.');
+  });
 });

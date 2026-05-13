@@ -853,6 +853,18 @@ export function ProjectView({
     } catch {
       // Ignore; memory injection is best-effort.
     }
+    let tasteProfileBody: string | undefined;
+    try {
+      const resp = await fetch('/api/taste-profile/system-prompt');
+      if (resp.ok) {
+        const json = (await resp.json()) as { body?: string };
+        if (typeof json.body === 'string' && json.body.trim().length > 0) {
+          tasteProfileBody = json.body;
+        }
+      }
+    } catch {
+      // Ignore; taste-profile injection is best-effort.
+    }
     return composeSystemPrompt({
       skillBody,
       skillName,
@@ -860,6 +872,7 @@ export function ProjectView({
       designSystemBody,
       designSystemTitle,
       memoryBody,
+      tasteProfileBody,
       metadata: project.metadata,
       template,
       streamFormat: config.mode === 'api' ? 'plain' : undefined,

@@ -106,6 +106,66 @@ describe('GET /api/projects/:id resolvedDir', () => {
     expect(path.isAbsolute(detail.resolvedDir)).toBe(true);
   });
 
+  it('round-trips artifact intent metadata on project creation', async () => {
+    const projectId = `proj-intent-${Date.now()}`;
+    const createResp = await fetch(`${baseUrl}/api/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: projectId,
+        name: 'Business card fixture',
+        skillId: null,
+        designSystemId: null,
+        metadata: {
+          kind: 'prototype',
+          artifactIntent: {
+            id: 'business-card',
+            label: 'Business card',
+            group: 'print-products',
+            dimensions: { width: 90, height: 54, unit: 'mm', dpi: 300 },
+            mediumConstraints: ['two-sided physical print surface'],
+            outputExpectations: ['print handoff'],
+            printReady: true,
+          },
+        },
+      }),
+    });
+    expect(createResp.status).toBe(200);
+    const createBody = (await createResp.json()) as {
+      project: {
+        metadata?: {
+          artifactIntent?: {
+            id?: string;
+            dimensions?: { width?: number; height?: number; unit?: string; dpi?: number };
+            printReady?: boolean;
+          };
+        };
+      };
+    };
+    expect(createBody.project.metadata?.artifactIntent).toMatchObject({
+      id: 'business-card',
+      dimensions: { width: 90, height: 54, unit: 'mm', dpi: 300 },
+      printReady: true,
+    });
+
+    const detailResp = await fetch(`${baseUrl}/api/projects/${projectId}`);
+    expect(detailResp.status).toBe(200);
+    const detail = (await detailResp.json()) as {
+      project: {
+        metadata?: {
+          artifactIntent?: {
+            id?: string;
+            outputExpectations?: string[];
+          };
+        };
+      };
+    };
+    expect(detail.project.metadata?.artifactIntent).toMatchObject({
+      id: 'business-card',
+      outputExpectations: ['print handoff'],
+    });
+  });
+
   it('returns 404 with PROJECT_NOT_FOUND for unknown ids', async () => {
     const resp = await fetch(`${baseUrl}/api/projects/does-not-exist-${Date.now()}`);
     expect(resp.status).toBe(404);

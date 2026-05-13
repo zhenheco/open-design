@@ -1,4 +1,7 @@
 import type { ChatMessage } from './chat.js';
+import type { ArtifactIntentMetadata } from '../artifact-intents.js';
+import type { StyleCardMetadata } from '../style-cards.js';
+import type { PrintSpecMetadata } from '../print-specs.js';
 
 export type ProjectKind =
   | 'prototype'
@@ -65,6 +68,9 @@ export interface PromptTemplateMetadata {
 export interface ProjectMetadata {
   kind: ProjectKind;
   intent?: 'live-artifact';
+  artifactIntent?: ArtifactIntentMetadata;
+  styleCard?: StyleCardMetadata;
+  printSpec?: PrintSpecMetadata;
   fidelity?: 'wireframe' | 'high-fidelity';
   speakerNotes?: boolean;
   animations?: boolean;

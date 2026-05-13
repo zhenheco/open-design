@@ -227,6 +227,64 @@ describe('memory routes', () => {
     ]);
   });
 
+  it('extracts a draft Style card from reference memory entries', async () => {
+    const createRes = await fetch(`${baseUrl}/api/memory`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Tea packaging reference',
+        description: 'Quiet premium packaging with foil label hierarchy',
+        type: 'reference',
+        body: [
+          '- Mood: calm, premium, editorial',
+          '- Color palette: deep green, ivory, muted gold foil',
+          '- Typography: elegant serif headline with tiny uppercase details',
+          '- Composition: centered label grid with generous whitespace',
+          '- Density: low density front, detailed information on back',
+        ].join('\n'),
+      }),
+    });
+    expect(createRes.status).toBe(200);
+    const created = await createRes.json() as { entry: { id: string } };
+
+    const extractRes = await fetch(`${baseUrl}/api/style-cards/extract`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        label: 'Premium tea packaging direction',
+        referenceIds: [created.entry.id],
+      }),
+    });
+    expect(extractRes.status).toBe(200);
+
+    const json = await extractRes.json() as {
+      styleCard: {
+        id: string;
+        source: string;
+        status?: string;
+        signals: {
+          color: string;
+          typography: string;
+          transferNotes: string;
+        };
+        sourceReferences?: Array<{ id: string; name: string }>;
+      };
+    };
+    expect(json.styleCard).toMatchObject({
+      id: 'style_premium_tea_packaging_direction',
+      source: 'extracted',
+      status: 'draft',
+      signals: {
+        color: expect.stringContaining('deep green'),
+        typography: expect.stringContaining('serif'),
+      },
+      sourceReferences: [
+        { id: created.entry.id, name: 'Tea packaging reference' },
+      ],
+    });
+    expect(json.styleCard.signals.transferNotes).toContain('Tea packaging reference');
+  });
+
   it('returns the composed system prompt body from indexed memory entries', async () => {
     await fetch(`${baseUrl}/api/memory`, {
       method: 'POST',

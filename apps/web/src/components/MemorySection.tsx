@@ -20,6 +20,8 @@ import type {
   MemoryExtractionsResponse,
   MemoryListResponse,
   MemoryType,
+  AcceptStyleCardResponse,
+  StyleCardMetadata,
 } from '@open-design/contracts';
 
 const TYPES: MemoryType[] = ['user', 'feedback', 'project', 'reference'];
@@ -38,6 +40,18 @@ const EMPTY_DRAFT: DraftEntry = {
   type: 'user',
   body: '',
 };
+
+const STYLE_SIGNAL_FIELDS: ReadonlyArray<{
+  key: keyof StyleCardMetadata['signals'];
+  label: string;
+}> = [
+  { key: 'mood', label: 'Mood' },
+  { key: 'color', label: 'Color' },
+  { key: 'typography', label: 'Typography' },
+  { key: 'composition', label: 'Composition' },
+  { key: 'density', label: 'Density' },
+  { key: 'transferNotes', label: 'Transfer notes' },
+];
 
 // Small uppercase caption used above each form field. Centralised so
 // every field renders with the same color/letter-spacing/baseline; this
@@ -161,6 +175,28 @@ async function clearExtractionHistory(): Promise<boolean> {
   return resp.ok;
 }
 
+async function extractStyleCard(referenceIds: string[], label: string): Promise<StyleCardMetadata | null> {
+  const resp = await fetch('/api/style-cards/extract', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ referenceIds, label }),
+  });
+  if (!resp.ok) return null;
+  const json = (await resp.json()) as { styleCard?: StyleCardMetadata };
+  return json.styleCard ?? null;
+}
+
+async function acceptStyleCard(styleCard: StyleCardMetadata): Promise<StyleCardMetadata | null> {
+  const resp = await fetch('/api/taste-profile/style-cards', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ styleCard }),
+  });
+  if (!resp.ok) return null;
+  const json = (await resp.json()) as AcceptStyleCardResponse;
+  return json.styleCard ?? null;
+}
+
 // Map a record back to a single human label for the small badge that
 // appears next to the row's preview text. Centralised so phase + skip
 // reason render consistently across the empty banner and the list.
@@ -264,7 +300,21 @@ function formatDuration(record: MemoryExtractionRecord): string | null {
 
 type FlashKind = 'created' | 'saved' | 'deleted' | 'indexSaved';
 
-export function MemorySection() {
+interface MemorySectionProps {
+  heading?: string;
+  description?: string;
+  initialFilter?: 'all' | MemoryType;
+  defaultNewType?: MemoryType;
+  enableStyleCardExtraction?: boolean;
+}
+
+export function MemorySection({
+  heading,
+  description,
+  initialFilter = 'all',
+  defaultNewType = 'user',
+  enableStyleCardExtraction = false,
+}: MemorySectionProps = {}) {
   const t = useT();
   const [enabled, setEnabled] = useState(true);
   const [rootDir, setRootDir] = useState('');
@@ -275,7 +325,10 @@ export function MemorySection() {
   const [previewBody, setPreviewBody] = useState<string | null>(null);
   const [editing, setEditing] = useState<DraftEntry | null>(null);
   const [busy, setBusy] = useState(false);
-  const [filter, setFilter] = useState<'all' | MemoryType>('all');
+  const [styleCardBusy, setStyleCardBusy] = useState(false);
+  const [styleCardDraft, setStyleCardDraft] = useState<StyleCardMetadata | null>(null);
+  const [styleCardMessage, setStyleCardMessage] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | MemoryType>(initialFilter);
   // Brief inline confirmation after a manual save/create/delete. The
   // form vanishes on success and the existing list re-renders, but
   // those signals are subtle — a 1.8s pill makes "your click did
@@ -398,6 +451,11 @@ export function MemorySection() {
     return entries.filter((e) => e.type === filter);
   }, [entries, filter]);
 
+  const referenceEntries = useMemo(
+    () => entries.filter((e) => e.type === 'reference'),
+    [entries],
+  );
+
   // The "no API key" banner only shows when the most recent attempt
   // skipped for that specific reason. We don't show it for
   // memory-disabled (the user's own toggle) or empty-message (a
@@ -458,8 +516,8 @@ export function MemorySection() {
   }, []);
 
   const startNew = useCallback(() => {
-    setEditing({ ...EMPTY_DRAFT });
-  }, []);
+    setEditing({ ...EMPTY_DRAFT, type: defaultNewType });
+  }, [defaultNewType]);
 
   const cancelEdit = useCallback(() => {
     setEditing(null);
@@ -496,6 +554,70 @@ export function MemorySection() {
   const onToggleEnabled = useCallback(async (next: boolean) => {
     setEnabled(next);
     await setMemoryEnabled(next);
+  }, []);
+
+  const onExtractStyleCard = useCallback(async () => {
+    const references = referenceEntries;
+    if (references.length === 0) return;
+    const label = references.length === 1
+      ? `${references[0]!.name} direction`
+      : 'Reference board direction';
+    setStyleCardBusy(true);
+    setStyleCardMessage(null);
+    try {
+      const card = await extractStyleCard(
+        references.map((entry) => entry.id),
+        label,
+      );
+      if (card) setStyleCardDraft(card);
+    } finally {
+      setStyleCardBusy(false);
+    }
+  }, [referenceEntries]);
+
+  const updateStyleSignal = useCallback(
+    (key: keyof StyleCardMetadata['signals'], value: string) => {
+      setStyleCardDraft((current) =>
+        current
+          ? {
+              ...current,
+              signals: { ...current.signals, [key]: value },
+              updatedAt: Date.now(),
+            }
+          : current,
+      );
+    },
+    [],
+  );
+
+  const updateStyleLabel = useCallback((value: string) => {
+    setStyleCardDraft((current) =>
+      current ? { ...current, label: value, updatedAt: Date.now() } : current,
+    );
+  }, []);
+
+  const onAcceptStyleCard = useCallback(async () => {
+    if (!styleCardDraft) return;
+    setStyleCardBusy(true);
+    setStyleCardMessage(null);
+    try {
+      const accepted = await acceptStyleCard(styleCardDraft);
+      if (accepted) {
+        setStyleCardDraft(accepted);
+        setStyleCardMessage('Accepted to taste profile');
+      }
+    } finally {
+      setStyleCardBusy(false);
+    }
+  }, [styleCardDraft]);
+
+  const onIgnoreStyleCard = useCallback(() => {
+    setStyleCardDraft((current) =>
+      current
+        ? { ...current, status: 'ignored', updatedAt: Date.now() }
+        : current,
+    );
+    setStyleCardMessage('Ignored for now');
   }, []);
 
   const onSaveIndex = useCallback(async () => {
@@ -537,8 +659,8 @@ export function MemorySection() {
     <section className={`settings-section${enabled ? '' : ' is-disabled'}`}>
       <div className="section-head">
         <div>
-          <h3>{t('settings.memory')}</h3>
-          <p className="hint">{t('settings.memoryDescription')}</p>
+          <h3>{heading ?? t('settings.memory')}</h3>
+          <p className="hint">{description ?? t('settings.memoryDescription')}</p>
         </div>
         <label
           className="toggle-switch"
@@ -610,6 +732,88 @@ export function MemorySection() {
           <span>{t('settings.memoryNew')}</span>
         </button>
       </div>
+
+      {enableStyleCardExtraction ? (
+        <div className="style-card-extraction-panel">
+          <div>
+            <strong>Style card extraction</strong>
+            <p className="hint">
+              Turn saved references into an editable generation-ready style direction.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="secondary"
+            onClick={onExtractStyleCard}
+            disabled={styleCardBusy || referenceEntries.length === 0}
+          >
+            <Icon name="sparkles" size={14} />
+            <span>{styleCardBusy ? 'Extracting...' : 'Extract Style card'}</span>
+          </button>
+        </div>
+      ) : null}
+
+      {styleCardDraft ? (
+        <div className="style-card-editor" aria-label="Style card proposal">
+          <div className="style-card-editor-head">
+            <div>
+              <strong>Style card proposal</strong>
+              <p className="hint">
+                Edit these fields before using this direction in a project.
+              </p>
+            </div>
+            <span className="library-card-badge">{styleCardDraft.status ?? 'draft'}</span>
+          </div>
+          <label className="style-card-field">
+            <span>Label</span>
+            <input
+              type="text"
+              value={styleCardDraft.label}
+              onChange={(event) => updateStyleLabel(event.target.value)}
+            />
+          </label>
+          <div className="style-card-signal-grid">
+            {STYLE_SIGNAL_FIELDS.map((field) => (
+              <label key={field.key} className="style-card-field">
+                <span>{field.label}</span>
+                <textarea
+                  rows={3}
+                  value={styleCardDraft.signals[field.key]}
+                  onChange={(event) => updateStyleSignal(field.key, event.target.value)}
+                />
+              </label>
+            ))}
+          </div>
+          {styleCardDraft.sourceReferences?.length ? (
+            <p className="hint">
+              Sources: {styleCardDraft.sourceReferences.map((ref) => ref.name).join(', ')}
+            </p>
+          ) : null}
+          <div className="style-card-actions">
+            <button
+              type="button"
+              className="ghost"
+              onClick={onIgnoreStyleCard}
+              disabled={styleCardBusy || styleCardDraft.status === 'accepted'}
+            >
+              Ignore
+            </button>
+            <button
+              type="button"
+              className="primary"
+              onClick={onAcceptStyleCard}
+              disabled={styleCardBusy || styleCardDraft.status === 'accepted'}
+            >
+              {styleCardBusy ? 'Saving...' : 'Accept Style card'}
+            </button>
+          </div>
+          {styleCardMessage ? (
+            <div role="status" className="memory-flash-pill">
+              {styleCardMessage}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {flash ? (
         <div

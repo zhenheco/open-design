@@ -14,9 +14,21 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.mjs"
     },
+    "./style-cards": {
+      "types": "./dist/style-cards.d.ts",
+      "default": "./dist/style-cards.mjs"
+    },
+    "./print-specs": {
+      "types": "./dist/print-specs.d.ts",
+      "default": "./dist/print-specs.mjs"
+    },
     "./api/connectionTest": {
       "types": "./dist/api/connectionTest.d.ts",
       "default": "./dist/api/connectionTest.mjs"
+    },
+    "./api/taste-profile": {
+      "types": "./dist/api/taste-profile.d.ts",
+      "default": "./dist/api/taste-profile.mjs"
     },
     "./api/orbit": {
       "types": "./dist/api/orbit.d.ts",

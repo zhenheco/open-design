@@ -15,6 +15,7 @@ import {
   renderCodexImagegenOverride,
   shouldRenderCodexImagegenOverride,
 } from './prompts/system.js';
+import { extractStyleCardFromReferences } from '@open-design/contracts';
 import { expandHomePrefix, resolveProjectRelativePath } from './home-expansion.js';
 import { createCommandInvocation } from '@open-design/platform';
 import { SIDECAR_DEFAULTS, SIDECAR_ENV } from '@open-design/sidecar-proto';
@@ -99,6 +100,15 @@ import { buildDesktopPdfExportInput } from './pdf-export.js';
 import { generateMedia } from './media.js';
 import { searchResearch, ResearchError } from './research/index.js';
 import { renderResearchCommandContract } from './prompts/research-contract.js';
+import {
+  acceptTasteProfileStyleCard,
+  composeTasteProfileBody,
+  readTasteProfile,
+} from './taste-profile.js';
+import {
+  listPrintSpecPresets,
+  upsertPrintSpecPreset,
+} from './print-spec-presets.js';
 import {
   AUDIO_DURATIONS_SEC,
   AUDIO_MODELS_BY_KIND,
@@ -2520,6 +2530,100 @@ export async function startServer({
     }
   });
 
+  app.post('/api/style-cards/extract', async (req, res) => {
+    try {
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const referenceIds = Array.isArray(body.referenceIds)
+        ? body.referenceIds
+            .filter((id) => typeof id === 'string' && /^[a-z0-9_]+$/.test(id))
+            .slice(0, 24)
+        : [];
+      if (referenceIds.length === 0) {
+        return res.status(400).json({ error: 'referenceIds is required' });
+      }
+      const references = [];
+      for (const id of referenceIds) {
+        const entry = await readMemoryEntry(RUNTIME_DATA_DIR, id);
+        if (!entry || entry.type !== 'reference') continue;
+        references.push({
+          id: entry.id,
+          name: entry.name,
+          description: entry.description,
+          body: entry.body,
+        });
+      }
+      if (references.length === 0) {
+        return res.status(404).json({ error: 'no reference memories found' });
+      }
+      const styleCard = extractStyleCardFromReferences({
+        label: typeof body.label === 'string' ? body.label : undefined,
+        references,
+      });
+      res.json({
+        styleCard,
+        references: references.map((ref) => ({
+          id: ref.id,
+          name: ref.name,
+          description: ref.description,
+        })),
+      });
+    } catch (err) {
+      res.status(400).json({ error: String((err && err.message) || err) });
+    }
+  });
+
+  app.get('/api/taste-profile', async (_req, res) => {
+    try {
+      const profile = await readTasteProfile(RUNTIME_DATA_DIR);
+      res.json({ profile });
+    } catch (err) {
+      res.status(500).json({ error: String((err && err.message) || err) });
+    }
+  });
+
+  app.get('/api/taste-profile/system-prompt', async (_req, res) => {
+    try {
+      const body = await composeTasteProfileBody(RUNTIME_DATA_DIR);
+      res.json({ body });
+    } catch (err) {
+      res.status(500).json({ error: String((err && err.message) || err) });
+    }
+  });
+
+  app.post('/api/taste-profile/style-cards', async (req, res) => {
+    try {
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const result = await acceptTasteProfileStyleCard(
+        RUNTIME_DATA_DIR,
+        body.styleCard,
+      );
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: String((err && err.message) || err) });
+    }
+  });
+
+  app.get('/api/print-spec-presets', async (_req, res) => {
+    try {
+      res.json({ presets: await listPrintSpecPresets(RUNTIME_DATA_DIR) });
+    } catch (err) {
+      res.status(500).json({ error: String((err && err.message) || err) });
+    }
+  });
+
+  app.post('/api/print-spec-presets', async (req, res) => {
+    try {
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const result = await upsertPrintSpecPreset(RUNTIME_DATA_DIR, {
+        label: typeof body.label === 'string' ? body.label : undefined,
+        spec: body.spec,
+      });
+      res.json(result);
+    } catch (err) {
+      res.status(400).json({ error: String((err && err.message) || err) });
+    }
+  });
+
   // Composed memory body for the system prompt. Daemon-side chat runs
   // call `composeMemoryBody()` directly; the web app (BYOK / API mode)
   // can't import daemon internals, so this endpoint exposes the same
@@ -2979,6 +3083,12 @@ export async function startServer({
     } catch (err) {
       console.warn('[memory] composeMemoryBody failed', err);
     }
+    let tasteProfileBody = '';
+    try {
+      tasteProfileBody = await composeTasteProfileBody(RUNTIME_DATA_DIR);
+    } catch (err) {
+      console.warn('[taste-profile] composeTasteProfileBody failed', err);
+    }
 
     let designSystemBody;
     let designSystemTitle;
@@ -3081,6 +3191,7 @@ export async function startServer({
       craftBody,
       craftSections,
       memoryBody,
+      tasteProfileBody,
       metadata,
       template,
       critique: critiqueShouldRun ? critiqueCfg : undefined,

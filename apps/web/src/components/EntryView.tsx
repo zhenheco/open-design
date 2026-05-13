@@ -24,6 +24,7 @@ import { ExamplesTab } from './ExamplesTab';
 import { Icon } from './Icon';
 import { LanguageMenu } from './LanguageMenu';
 import { CenteredLoader } from './Loading';
+import { MemorySection } from './MemorySection';
 import { NewProjectPanel, type CreateInput } from './NewProjectPanel';
 import {
   fetchConnectors,
@@ -34,7 +35,7 @@ import { PromptTemplatePreviewModal } from './PromptTemplatePreviewModal';
 import { PromptTemplatesTab } from './PromptTemplatesTab';
 import { apiProtocolLabel } from '../utils/apiProtocol';
 
-type TopTab = 'designs' | 'templates' | 'design-systems' | 'image-templates' | 'video-templates';
+type TopTab = 'designs' | 'templates' | 'design-systems' | 'references' | 'image-templates' | 'video-templates';
 
 interface Props {
   // Union of functional skills + design templates — used for id-based
@@ -536,6 +537,12 @@ export function EntryView({
             />
             <TopTabButton
               current={topTab}
+              value="references"
+              label="References"
+              onClick={setTopTab}
+            />
+            <TopTabButton
+              current={topTab}
               value="image-templates"
               label={t('entry.tabImageTemplates')}
               onClick={setTopTab}
@@ -589,6 +596,15 @@ export function EntryView({
                 onPreview={previewDesignSystem}
               />
             )
+          ) : null}
+          {topTab === 'references' ? (
+            <MemorySection
+              heading="Reference board"
+              description="Save design references, notes, and inspiration for later taste extraction."
+              initialFilter="reference"
+              defaultNewType="reference"
+              enableStyleCardExtraction
+            />
           ) : null}
           {topTab === 'image-templates' ? (
             promptTemplatesLoading ? (

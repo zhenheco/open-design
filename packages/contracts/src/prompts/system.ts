@@ -57,6 +57,9 @@ export interface ComposeInput {
   // way the string is folded in right after the base charter so the
   // model treats it as preferences/context rather than hard rules.
   memoryBody?: string | undefined;
+  // Accepted style cards from the Taste profile. This is durable taste
+  // context and must be translated across media, not copied verbatim.
+  tasteProfileBody?: string | undefined;
   // Project-level metadata captured by the new-project panel. Drives the
   // agent's understanding of artifact kind, fidelity, speaker-notes intent
   // and animation intent. Missing fields here are exactly what the
@@ -78,6 +81,7 @@ export function composeSystemPrompt({
   designSystemBody,
   designSystemTitle,
   memoryBody,
+  tasteProfileBody,
   metadata,
   template,
   streamFormat,
@@ -117,6 +121,11 @@ export function composeSystemPrompt({
   if (memoryBody && memoryBody.trim().length > 0) {
     parts.push(
       `\n\n## Personal memory (auto-extracted from past chats)\n\nThe following facts have been sedimented from this user's previous conversations and edited in the settings panel. Treat them as preferences and context, NOT hard rules: when they collide with the active design system tokens, the brand wins; when they collide with the active skill's workflow, the skill wins. They are still authoritative for tone, voice, terminology, and what the user already told you about themselves and their goals — never re-ask the user about something already captured here.\n\n${memoryBody.trim()}`,
+    );
+  }
+  if (tasteProfileBody && tasteProfileBody.trim().length > 0) {
+    parts.push(
+      `\n\n## Taste profile (accepted Style cards)\n\nThese are user-accepted design taste signals. Use them as durable style context, but translate them to the selected artifact intent and medium. Do not copy source artwork, logos, protected layouts, or the original medium one-to-one.\n\n${tasteProfileBody.trim()}`,
     );
   }
 
@@ -218,6 +227,9 @@ function renderMetadataBlock(
   );
   lines.push('');
   lines.push(`- **kind**: ${metadata.kind}`);
+  appendArtifactIntentMetadata(lines, metadata);
+  appendStyleCardMetadata(lines, metadata);
+  appendPrintSpecMetadata(lines, metadata);
   if (metadata.platform) {
     lines.push(`- **platform**: ${metadata.platform}`);
   } else if (metadata.kind === 'prototype' || metadata.kind === 'template' || metadata.kind === 'other') {
@@ -437,6 +449,63 @@ function renderMetadataBlock(
   }
 
   return lines.join('\n');
+}
+
+function appendArtifactIntentMetadata(lines: string[], metadata: ProjectMetadata): void {
+  const intent = metadata.artifactIntent;
+  if (!intent) return;
+  lines.push(`- **artifactIntent**: ${intent.label} (\`${intent.id}\`)`);
+  if (intent.dimensions) {
+    const dpi = intent.dimensions.dpi ? ` @ ${intent.dimensions.dpi} DPI` : '';
+    lines.push(
+      `- **artifactDimensions**: ${intent.dimensions.width} x ${intent.dimensions.height} ${intent.dimensions.unit}${dpi}`,
+    );
+  }
+  if (intent.mediumConstraints.length > 0) {
+    lines.push(`- **artifactMediumConstraints**: ${intent.mediumConstraints.join('; ')}`);
+  }
+  if (intent.outputExpectations.length > 0) {
+    lines.push(`- **artifactOutputExpectations**: ${intent.outputExpectations.join('; ')}`);
+  }
+  lines.push(`- **printReadinessRelevant**: ${intent.printReady ? 'true' : 'false'}`);
+}
+
+function appendStyleCardMetadata(lines: string[], metadata: ProjectMetadata): void {
+  const styleCard = metadata.styleCard;
+  if (!styleCard) return;
+  lines.push(`- **styleCard**: ${styleCard.label} (\`${styleCard.id}\`, ${styleCard.source})`);
+  if (styleCard.sourceReferences?.length) {
+    lines.push(
+      `- **styleSourceReferences**: ${styleCard.sourceReferences
+        .map((ref) => `${ref.name} (\`${ref.id}\`)`)
+        .join('; ')}`,
+    );
+  }
+  lines.push(`- **styleMood**: ${styleCard.signals.mood}`);
+  lines.push(`- **styleColor**: ${styleCard.signals.color}`);
+  lines.push(`- **styleTypography**: ${styleCard.signals.typography}`);
+  lines.push(`- **styleComposition**: ${styleCard.signals.composition}`);
+  lines.push(`- **styleDensity**: ${styleCard.signals.density}`);
+  lines.push(`- **styleTransferNotes**: ${styleCard.signals.transferNotes}`);
+  if (styleCard.source === 'extracted' || styleCard.sourceReferences?.length) {
+    lines.push(
+      '- **crossMediumStyleTransferRule**: translate the extracted style signals to the selected artifact intent; do not copy source artwork, logos, protected layouts, or the original medium one-to-one.',
+    );
+  }
+}
+
+function appendPrintSpecMetadata(lines: string[], metadata: ProjectMetadata): void {
+  const spec = metadata.printSpec;
+  if (!spec) return;
+  lines.push(`- **printSpec**: ${spec.label} (\`${spec.id}\`, ${spec.source})`);
+  lines.push(`- **printColorMode**: ${spec.requirements.colorMode}`);
+  if (spec.requirements.bleedMm !== undefined) lines.push(`- **printBleedMm**: ${spec.requirements.bleedMm}`);
+  if (spec.requirements.safeAreaMm !== undefined) lines.push(`- **printSafeAreaMm**: ${spec.requirements.safeAreaMm}`);
+  if (spec.requirements.dpi !== undefined) lines.push(`- **printDpi**: ${spec.requirements.dpi}`);
+  if (spec.requirements.material) lines.push(`- **printMaterial**: ${spec.requirements.material}`);
+  if (spec.requirements.finish) lines.push(`- **printFinish**: ${spec.requirements.finish}`);
+  if (spec.checklist.length > 0) lines.push(`- **printChecklist**: ${spec.checklist.join(' | ')}`);
+  lines.push('- **basicPrintHandoffRule**: produce a Level 2.5 print handoff: final design plus explicit trim size, bleed, safe area, DPI, CMYK-compatible color notes, asset resolution notes, and vendor assumptions. Do not stop at a screen-only preview.');
 }
 
 /**

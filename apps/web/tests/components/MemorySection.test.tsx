@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import type { ComponentProps } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MemorySection } from '../../src/components/MemorySection';
@@ -31,10 +32,10 @@ class StubEventSource {
   close() {}
 }
 
-function renderMemorySection() {
+function renderMemorySection(props?: ComponentProps<typeof MemorySection>) {
   render(
     <I18nProvider initial="en">
-      <MemorySection />
+      <MemorySection {...props} />
     </I18nProvider>,
   );
 }
@@ -172,6 +173,158 @@ describe('MemorySection', () => {
         description: 'Persistent UI rendering preferences',
         type: 'user',
         body: '- Prefer dark mode\n- Prefer generous spacing',
+      },
+    ]);
+  });
+
+  it('can be opened as a reference board with reference-only defaults', async () => {
+    globalThis.EventSource = StubEventSource as unknown as typeof EventSource;
+    const entries = [
+      {
+        id: 'reference_packaging_ref',
+        name: 'Packaging reference',
+        description: 'Foil label and dense product hierarchy',
+        type: 'reference',
+        updatedAt: Date.now(),
+      },
+      {
+        id: 'user_ui_preferences',
+        name: 'UI preferences',
+        description: 'General UI preferences',
+        type: 'user',
+        updatedAt: Date.now(),
+      },
+    ];
+
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = input.toString();
+      if (url === '/api/memory') {
+        return new Response(JSON.stringify({
+          enabled: true,
+          rootDir: '/tmp/memory',
+          index: '# Memory\n',
+          entries,
+          extraction: null,
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (url === '/api/memory/extractions') {
+        return new Response(JSON.stringify({ extractions: [] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({}), { status: 404 });
+    }) as typeof fetch;
+
+    renderMemorySection({
+      heading: 'Reference board',
+      description: 'Save design references, notes, and inspiration for later taste extraction.',
+      initialFilter: 'reference',
+      defaultNewType: 'reference',
+    });
+
+    expect(await screen.findByText('Reference board')).toBeTruthy();
+    expect(screen.getByText('Packaging reference')).toBeTruthy();
+    expect(screen.queryByText('UI preferences')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'New memory' }));
+
+    const typeSelect = screen.getByDisplayValue('Reference') as HTMLSelectElement;
+    expect(typeSelect.value).toBe('reference');
+  });
+
+  it('extracts an editable Style card proposal from reference entries', async () => {
+    globalThis.EventSource = StubEventSource as unknown as typeof EventSource;
+    const extractBodies: unknown[] = [];
+    const entries = [
+      {
+        id: 'reference_packaging_ref',
+        name: 'Packaging reference',
+        description: 'Foil label and dense product hierarchy',
+        type: 'reference',
+        updatedAt: Date.now(),
+      },
+    ];
+
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = input.toString();
+      if (url === '/api/memory') {
+        return new Response(JSON.stringify({
+          enabled: true,
+          rootDir: '/tmp/memory',
+          index: '# Memory\n',
+          entries,
+          extraction: null,
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (url === '/api/memory/extractions') {
+        return new Response(JSON.stringify({ extractions: [] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (url === '/api/style-cards/extract' && init?.method === 'POST') {
+        extractBodies.push(JSON.parse(String(init.body)));
+        return new Response(JSON.stringify({
+          styleCard: {
+            id: 'style_premium_packaging_direction',
+            label: 'Premium packaging direction',
+            source: 'extracted',
+            status: 'draft',
+            signals: {
+              mood: 'premium, confident',
+              color: 'deep green, ivory, muted gold foil',
+              typography: 'elegant serif with uppercase details',
+              composition: 'centered label grid',
+              density: 'low density front, detailed back',
+              transferNotes: 'Adapt Packaging reference without copying source artwork.',
+            },
+            sourceReferences: [
+              { id: 'reference_packaging_ref', name: 'Packaging reference' },
+            ],
+          },
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (url === '/api/taste-profile/style-cards' && init?.method === 'POST') {
+        const body = JSON.parse(String(init.body));
+        return new Response(JSON.stringify({
+          styleCard: {
+            ...body.styleCard,
+            status: 'accepted',
+          },
+          profile: {
+            styleCards: [{ ...body.styleCard, status: 'accepted' }],
+            updatedAt: Date.now(),
+          },
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({}), { status: 404 });
+    }) as typeof fetch;
+
+    renderMemorySection({
+      heading: 'Reference board',
+      initialFilter: 'reference',
+      defaultNewType: 'reference',
+      enableStyleCardExtraction: true,
+    });
+
+    expect(await screen.findByText('Packaging reference')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Extract Style card' }));
+
+    expect(await screen.findByDisplayValue('Premium packaging direction')).toBeTruthy();
+    const colorField = screen.getByLabelText('Color') as HTMLTextAreaElement;
+    fireEvent.change(colorField, {
+      target: { value: 'forest green, ivory, sharp silver accent' },
+    });
+
+    expect(colorField.value).toBe('forest green, ivory, sharp silver accent');
+    fireEvent.click(screen.getByRole('button', { name: 'Accept Style card' }));
+
+    expect(await screen.findByText('Accepted to taste profile')).toBeTruthy();
+    expect(extractBodies).toEqual([
+      {
+        referenceIds: ['reference_packaging_ref'],
+        label: 'Packaging reference direction',
       },
     ]);
   });

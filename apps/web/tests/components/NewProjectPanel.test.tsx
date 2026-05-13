@@ -150,6 +150,155 @@ describe('NewProjectPanel design system defaults', () => {
     );
   });
 
+  it('saves the selected artifact intent and its default constraints into the create payload', () => {
+    const onCreate = vi.fn();
+    render(
+      <NewProjectPanel
+        skills={skills}
+        designSystems={designSystems}
+        defaultDesignSystemId={null}
+        templates={[]}
+        onDeleteTemplate={vi.fn()}
+        promptTemplates={[]}
+        onCreate={onCreate}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('new-project-name'), {
+      target: { value: 'Business card payload' },
+    });
+    fireEvent.click(screen.getByRole('radio', { name: /Business card/i }));
+    fireEvent.click(screen.getByTestId('create-project'));
+
+    expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Business card payload',
+        metadata: expect.objectContaining({
+          kind: 'prototype',
+          artifactIntent: expect.objectContaining({
+            id: 'business-card',
+            label: 'Business card',
+            dimensions: {
+              width: 90,
+              height: 54,
+              unit: 'mm',
+              dpi: 300,
+            },
+            printReady: true,
+            outputExpectations: expect.arrayContaining(['print handoff']),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('saves pasted print specs for print-ready artifact intents', () => {
+    const onCreate = vi.fn();
+    render(
+      <NewProjectPanel
+        skills={skills}
+        designSystems={designSystems}
+        defaultDesignSystemId={null}
+        templates={[]}
+        onDeleteTemplate={vi.fn()}
+        promptTemplates={[]}
+        onCreate={onCreate}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('new-project-name'), {
+      target: { value: 'Printable card payload' },
+    });
+    fireEvent.click(screen.getByRole('radio', { name: /Business card/i }));
+    fireEvent.change(screen.getByLabelText('Print spec'), {
+      target: { value: 'CMYK only\nBleed: 3mm\nSafe area: 2mm\n300 DPI' },
+    });
+    fireEvent.click(screen.getByTestId('create-project'));
+
+    expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          printSpec: expect.objectContaining({
+            label: 'Business card print spec',
+            requirements: expect.objectContaining({
+              colorMode: 'cmyk-compatible',
+              bleedMm: 3,
+              safeAreaMm: 2,
+              dpi: 300,
+            }),
+            checklist: expect.arrayContaining([
+              'Use CMYK-compatible colors and avoid relying on screen-only RGB glow.',
+            ]),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('renders artifact intents as a grouped catalog', () => {
+    render(
+      <NewProjectPanel
+        skills={skills}
+        designSystems={designSystems}
+        defaultDesignSystemId={null}
+        templates={[]}
+        onDeleteTemplate={vi.fn()}
+        promptTemplates={[]}
+        onCreate={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Social')).toBeTruthy();
+    expect(screen.getByText('Ads and marketing')).toBeTruthy();
+    expect(screen.getByText('Packaging')).toBeTruthy();
+    expect(screen.getByText('Video and motion')).toBeTruthy();
+    expect(screen.getByRole('radio', { name: /Instagram post/i })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: /Box/i })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: /Short video/i })).toBeTruthy();
+  });
+
+  it('saves the selected starter Style card into the create payload', () => {
+    const onCreate = vi.fn();
+    render(
+      <NewProjectPanel
+        skills={skills}
+        designSystems={designSystems}
+        defaultDesignSystemId={null}
+        templates={[]}
+        onDeleteTemplate={vi.fn()}
+        promptTemplates={[]}
+        onCreate={onCreate}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('new-project-name'), {
+      target: { value: 'Styled landing page' },
+    });
+    fireEvent.click(screen.getByRole('radio', { name: /Editorial noir/i }));
+    fireEvent.click(screen.getByTestId('create-project'));
+
+    expect(onCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Styled landing page',
+        metadata: expect.objectContaining({
+          styleCard: expect.objectContaining({
+            id: 'editorial-noir',
+            label: 'Editorial noir',
+            source: 'starter',
+            signals: expect.objectContaining({
+              mood: expect.any(String),
+              color: expect.any(String),
+              typography: expect.any(String),
+              composition: expect.any(String),
+              density: expect.any(String),
+              transferNotes: expect.any(String),
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
   it('clears design system metadata when freeform is selected in multi mode', () => {
     const onCreate = vi.fn();
     render(
