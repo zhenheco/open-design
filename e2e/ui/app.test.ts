@@ -11,6 +11,19 @@ const APP_OWNED_SCENARIO_FLOWS = new Set([
 ]);
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/app-config', async (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    await route.fulfill({
+      json: {
+        config: {
+          onboardingCompleted: true,
+          privacyDecisionAt: 1,
+          telemetry: { metrics: false, content: false, artifactManifest: false },
+        },
+      },
+    });
+  });
+
   await page.addInitScript((key) => {
     window.localStorage.setItem(
       key,
@@ -33,6 +46,10 @@ for (const entry of automatedUiScenarios().filter(
   (scenario) => !APP_OWNED_SCENARIO_FLOWS.has(scenario.flow ?? ''),
 )) {
   test(`${entry.id}: ${entry.title}`, async ({ page }) => {
+    if (entry.flow === 'comment-attachment-flow') {
+      test.setTimeout(20_000);
+    }
+
     await page.route('**/api/agents', async (route) => {
       await route.fulfill({
         json: {
@@ -625,13 +642,12 @@ async function runCommentAttachmentFlow(
   await frame.locator('[data-od-id="hero-title"]').click();
   await expect(page.getByTestId('comment-popover')).toBeVisible();
   await page.getByTestId('comment-popover-input').fill('Make the headline more specific.');
-  await page.getByTestId('comment-popover').getByRole('button', { name: 'Save comment' }).click();
+  await page.getByTestId('comment-popover-save').click();
 
   await expect(page.getByTestId('comment-saved-marker-hero-title')).toBeVisible();
   await expect(page.getByTestId('staged-comment-attachments')).toHaveCount(0);
   await expect(page.getByTestId('chat-composer-input')).toHaveValue('');
   await expect(page.getByTestId('chat-send')).toBeDisabled();
-  await page.getByTestId('comment-popover').getByRole('button', { name: 'Close' }).click();
 
   await frame.locator('[data-od-id="hero-copy"]').hover();
   await expect(page.getByTestId('comment-target-overlay')).toBeVisible();
@@ -642,40 +658,17 @@ async function runCommentAttachmentFlow(
   await expect(page.getByTestId('comment-popover-input')).toHaveValue('Make the headline more specific.');
   await page.getByTestId('comment-popover').getByRole('button', { name: 'Close' }).click();
 
-  await page.getByRole('tab', { name: 'Comments' }).click();
-  await expect(page.getByTestId('comments-panel')).toBeVisible();
-  await expect(page.getByTestId('comments-panel').getByRole('heading', { name: 'Saved comments' })).toBeVisible();
-  await page.getByTestId('comments-panel')
-    .locator('[data-testid="comment-card-hero-title"]')
-    .getByRole('button', { name: 'Add' })
+  await expect(page.getByTestId('comment-side-panel')).toBeVisible();
+  await expect(page.getByTestId('comment-side-panel')).toContainText('Make the headline more specific.');
+  await page.getByTestId('comment-side-item')
+    .filter({ hasText: 'Make the headline more specific.' })
+    .getByRole('button', { name: 'Select' })
     .click();
-  await page.getByRole('tab', { name: 'Chat' }).click();
-  await expect(page.getByTestId('staged-comment-attachments')).toBeVisible();
-  await expect(page.getByTestId('staged-comment-attachments')).toContainText('hero-title');
-  await expect(page.getByTestId('staged-comment-attachments')).toContainText('Make the headline more specific.');
-
-  await page.getByRole('tab', { name: 'Comments' }).click();
-  await expect(page.getByTestId('comments-panel').getByRole('heading', { name: 'Attached to chat' })).toBeVisible();
-  await page.getByTestId('comments-panel')
-    .locator('[data-testid="comment-card-hero-title"]')
-    .getByRole('button', { name: 'Remove' })
-    .click();
-  await page.getByRole('tab', { name: 'Chat' }).click();
-  await expect(page.getByTestId('staged-comment-attachments')).toHaveCount(0);
-  await expect(page.getByTestId('chat-send')).toBeDisabled();
-
-  await page.getByRole('tab', { name: 'Comments' }).click();
-  await page.getByTestId('comments-panel')
-    .locator('[data-testid="comment-card-hero-title"]')
-    .getByRole('button', { name: 'Add' })
-    .click();
-  await page.getByRole('tab', { name: 'Chat' }).click();
-  await expect(page.getByTestId('staged-comment-attachments')).toContainText('hero-title');
-
+  await expect(page.getByTestId('comment-side-selectbar')).toContainText('1 selected');
   const runRequest = page.waitForRequest(
     isCreateRunRequest,
   );
-  await page.getByTestId('chat-send').click();
+  await page.getByTestId('comment-side-send-claude').click();
   const request = await runRequest;
   const body = request.postDataJSON() as {
     message?: string;

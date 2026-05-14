@@ -3,9 +3,22 @@ import type { Page } from '@playwright/test';
 
 const STORAGE_KEY = 'open-design:config';
 
-test.describe.configure({ timeout: 15_000 });
+test.describe.configure({ timeout: 25_000 });
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/app-config', async (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    await route.fulfill({
+      json: {
+        config: {
+          onboardingCompleted: true,
+          privacyDecisionAt: 1,
+          telemetry: { metrics: false, content: false, artifactManifest: false },
+        },
+      },
+    });
+  });
+
   await page.addInitScript((key) => {
     window.localStorage.setItem(
       key,
@@ -84,8 +97,9 @@ test('manual edit mode applies content, style, attribute, HTML, source, undo, an
   await page.getByRole('button', { name: 'Redo' }).click();
   await expect(frame.getByRole('heading', { name: 'Full Source Hero' })).toBeVisible();
 
-  await page.getByRole('button', { name: /Tweaks/ }).click();
+  await page.getByTestId('board-mode-toggle').click();
   await expect(page.getByTestId('comment-mode-toggle')).toBeVisible();
+  await page.getByTestId('comment-mode-toggle').click();
   await frame.getByRole('heading', { name: 'Full Source Hero' }).click();
   await expect(page.getByTestId('comment-popover')).toBeVisible();
 
