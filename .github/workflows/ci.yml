@@ -140,6 +140,7 @@ jobs:
       - name: App workspace tests
         run: |
           pnpm --filter @open-design/daemon test
+          pnpm --filter @open-design/telemetry-worker test
           pnpm --filter @open-design/web test
           pnpm --filter @open-design/tools-dev test
           pnpm --filter @open-design/tools-pack test

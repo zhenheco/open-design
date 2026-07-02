@@ -80,6 +80,7 @@ export function scrubSentryEvent(event: Event): Event {
 
   if (event.request) {
     scrubbed.request = { ...event.request };
+    delete scrubbed.request.data;
     if (event.request.headers && isRecord(event.request.headers)) {
       scrubbed.request.headers = scrubValue(event.request.headers) as Record<string, string>;
     }
@@ -110,6 +111,10 @@ export function buildSentryOptions(env: Env): CloudflareOptions {
     environment,
     sendDefaultPii: false,
     tracesSampleRate: parseSampleRate(env.SENTRY_TRACES_SAMPLE_RATE),
+    integrations: (integrations) => [
+      ...integrations.filter((integration) => integration.name !== 'HttpServer'),
+      Sentry.httpServerIntegration({ maxRequestBodySize: 'none' }),
+    ],
     beforeSend: (event) => scrubSentryEvent(event) as ErrorEvent,
   };
 

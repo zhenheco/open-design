@@ -15,6 +15,8 @@ describe('Sentry onboarding', () => {
     expect(source).toContain("@sentry/cloudflare");
     expect(source).toContain('Sentry.withSentry');
     expect(source).toContain('buildSentryOptions');
+    expect(source).toContain('httpServerIntegration');
+    expect(source).toContain("maxRequestBodySize: 'none'");
   });
 
   it('declares only non-secret Sentry vars in Wrangler config', () => {
@@ -56,6 +58,9 @@ describe('Sentry onboarding', () => {
   it('scrubs request, extra, and user PII before events leave the relay', () => {
     const scrubbed = scrubSentryEvent({
       request: {
+        data: {
+          batch: [{ body: { prompt: 'private prompt' } }],
+        },
         headers: {
           authorization: 'Bearer secret',
           cookie: 'sid=secret',
@@ -80,6 +85,7 @@ describe('Sentry onboarding', () => {
       'x-api-key': '[Filtered]',
       accept: 'application/json',
     });
+    expect(scrubbed.request?.data).toBeUndefined();
     expect(scrubbed.extra).toEqual({
       LANGFUSE_SECRET_KEY: '[Filtered]',
       nested: { token: '[Filtered]', keep: 'ok' },

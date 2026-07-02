@@ -9,5 +9,6 @@ describe('GitHub automation gates', () => {
     expect(ciWorkflow).toContain('needs: [validate]');
     expect(ciWorkflow).toContain('VALIDATE_RESULT');
     expect(ciWorkflow).toContain('exit 1');
+    expect(ciWorkflow).toContain('pnpm --filter @open-design/telemetry-worker test');
   });
 });
