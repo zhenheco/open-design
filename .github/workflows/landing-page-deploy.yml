@@ -1,16 +1,11 @@
 name: landing-page-deploy
 
+# Manual-only until Cloudflare credentials exist. This repo has neither
+# CLOUDFLARE_API_TOKEN nor CLOUDFLARE_ACCOUNT_ID, so every run has failed at the
+# deploy step since 2026-05 and the live site is published by another path. To
+# restore automatic deploys: add both secrets (a Pages:Edit scoped token), then
+# put the push trigger back.
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/landing-page-deploy.yml
-      - .github/workflows/landing-page-ci.yml
-      - apps/landing-page/**
-      - package.json
-      - pnpm-lock.yaml
-      - pnpm-workspace.yaml
   workflow_dispatch:
 
 permissions:
